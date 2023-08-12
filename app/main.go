@@ -1,29 +1,65 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"errors"
+	"path"
+	"strings"
 )
+
+func isolatedRun(command string, inputArgs ...string) error {
+	dname, mkdirErr := os.MkdirTemp("", "tempDockerRun")
+	// defer os.RemoveAll(dname)
+
+	if mkdirErr != nil {
+		fmt.Println("Error while making dir")
+		return mkdirErr
+	}
+
+	command_locating_cmd := exec.Command("which", command)
+	command_location, command_locating_err := command_locating_cmd.Output()
+
+	if command_locating_err != nil {
+		fmt.Println("Error while locating cmd")
+		return command_locating_err
+	}
+
+	jailed_cmd := path.Join(dname, command)
+	copy_executable_cmd := exec.Command("cp", strings.TrimSuffix(string(command_location), "\n"), jailed_cmd)
+	errWhileCopyingCommand := copy_executable_cmd.Run()
+
+	if errWhileCopyingCommand != nil {
+		fmt.Println("Error while copying executable")
+		return errWhileCopyingCommand
+	}
+
+	initial_args := [...]string{dname, command}
+	args := append(initial_args[:], inputArgs...)
+	cmd := exec.Command("chroot", args...)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
+
+}
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
 func main() {
 	command := os.Args[3]
 	args := os.Args[4:len(os.Args)]
 
-	cmd := exec.Command(command, args...)
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
+	if err := isolatedRun(command, args...); err != nil {
 		var exitErr *exec.ExitError
 		switch {
 		case errors.As(err, &exitErr):
+			fmt.Println("ExitErr: %v", err)
 			os.Exit(exitErr.ProcessState.ExitCode())
 		default:
-			fmt.Printf("Err: %v", err)
+			fmt.Println("Err: %v", err)
 			os.Exit(1)
 		}
 	}
