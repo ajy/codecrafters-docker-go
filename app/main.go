@@ -3,11 +3,34 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 )
+
+func copyExecutable(srcPath string, destPath string) error {
+	sourceFile, err := os.Open(srcPath)
+
+	if err != nil {
+		return err
+	}
+
+	destinationFile, err := os.Create(destPath)
+
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(destinationFile, sourceFile)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func isolatedRun(command string, inputArgs ...string) error {
 	dname, mkdirErr := os.MkdirTemp("", "tempDockerRun")
@@ -27,8 +50,7 @@ func isolatedRun(command string, inputArgs ...string) error {
 	}
 
 	jailed_cmd := path.Join(dname, command)
-	copy_executable_cmd := exec.Command("cp", strings.TrimSuffix(string(command_location), "\n"), jailed_cmd)
-	errWhileCopyingCommand := copy_executable_cmd.Run()
+	errWhileCopyingCommand := copyExecutable(strings.TrimSuffix(string(command_location), "\n"), jailed_cmd)
 
 	if errWhileCopyingCommand != nil {
 		fmt.Println("Error while copying executable")
