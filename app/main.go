@@ -13,6 +13,7 @@ import (
 
 func copyExecutable(srcPath string, destPath string) error {
 	sourceFile, err := os.Open(srcPath)
+	defer sourceFile.Close()
 
 	if err != nil {
 		return err
@@ -26,6 +27,7 @@ func copyExecutable(srcPath string, destPath string) error {
 	}
 
 	destinationFile, err := os.Create(destPath)
+	defer destinationFile.Close()
 
 	if err != nil {
 		return err
@@ -47,7 +49,7 @@ func copyExecutable(srcPath string, destPath string) error {
 
 func isolatedRun(command string, inputArgs ...string) error {
 	dname, mkdirErr := os.MkdirTemp("", "tempDockerRun")
-	// defer os.RemoveAll(dname)
+	defer os.RemoveAll(dname)
 
 	if mkdirErr != nil {
 		fmt.Println("Error while making dir")
