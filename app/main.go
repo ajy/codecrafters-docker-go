@@ -7,11 +7,19 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
 func copyExecutable(srcPath string, destPath string) error {
 	sourceFile, err := os.Open(srcPath)
+
+	if err != nil {
+		return err
+	}
+
+	destinationDir := filepath.Dir(destPath)
+	err = os.MkdirAll(destinationDir, 0777)
 
 	if err != nil {
 		return err
@@ -25,6 +33,11 @@ func copyExecutable(srcPath string, destPath string) error {
 
 	_, err = io.Copy(destinationFile, sourceFile)
 
+	if err != nil {
+		return err
+	}
+
+	err = destinationFile.Chmod(0777)
 	if err != nil {
 		return err
 	}
