@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"errors"
 )
 
 // Usage: your_docker.sh run <image> <command> <arg1> <arg2> ...
@@ -17,7 +18,13 @@ func main() {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("Err: %v", err)
-		os.Exit(1)
+		var exitErr *exec.ExitError
+		switch {
+		case errors.As(err, &exitErr):
+			os.Exit(exitErr.ProcessState.ExitCode())
+		default:
+			fmt.Printf("Err: %v", err)
+			os.Exit(1)
+		}
 	}
 }
