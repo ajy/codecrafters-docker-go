@@ -11,9 +11,6 @@ func main() {
 	command := os.Args[3]
 	args := os.Args[4:len(os.Args)]
 
-	command := os.Args[3]
-	args := os.Args[4:len(os.Args)]
-
 	cmd := exec.Command(command, args...)
 	output, err := cmd.Output()
 	if err != nil {
